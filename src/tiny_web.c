@@ -18,14 +18,39 @@
 #include "net.h"
 #include "utils.h"
 #include "rio.h"
+#include "sembuf.h"
+
+#define NTHREAD 100
+#define SBSIZE  200
+
+//基于信号量的缓冲区
+sembuf_t sb;
+
+//http服务
+void *http_thread(void *argv)
+{
+     //获得进程id并分离线程
+    Pthread_detach(Pthread_self());
+    while (1) {
+        int connfd = sembuf_remove(&sb); //获得一个可用消费项
+        //回声服务
+        doit(connfd);
+        //关闭连接
+        Close(connfd);
+        printf("Close connection\n");
+    }
+
+    return NULL;
+}
 
 //主流程
 int main(int argc, char *argv[])
 {
-    int listenfd,connfd;
+    int i,listenfd,connfd;
     char hostname[MAXLINE],port[MAXLINE];
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
+    pthread_t tid;
 
     //用法: xxx <port>
     if(argc != 2){
@@ -33,22 +58,26 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    clientlen = sizeof(clientaddr);
+
     //创建一个监听套接字
     listenfd = Open_listenfd(argv[1]);
+
+    //初始化缓冲区
+    sembuf_init(&sb, SBSIZE);
+    //创建线程
+    for(i = 0; i < NTHREAD; i++){
+        Pthread_create(&tid, NULL, http_thread, NULL);
+    }
+
     while(1){
-        //迭代式服务
-        clientlen = sizeof(clientaddr);
         //创建一个与客户端的连接套接字
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
         //获得客户端的信息
         Getnameinfo((SA*)&clientaddr, clientlen, hostname, MAXLINE,
             port, MAXLINE,0);
         printf("Accepted connection from (%s,%s)\n", hostname, port);
-        //处理该连接
-        doit(connfd);
-        //关闭该连接，处理下一个
-        Close(connfd);
-        printf("Close connection\n");
+        sembuf_insert(&sb, connfd);
     }
 }
 

@@ -7,6 +7,7 @@
 **********************************************************/
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -30,6 +31,13 @@ void error_exit(const char *msg)
 void app_error(char *msg)
 {
     fprintf(stderr, "%s.\n", msg);
+    exit(0);
+}
+
+//posix错误
+void posix_error(int code, char *msg)
+{
+    fprintf(stderr, "%s: %s\n", msg, strerror(code));
     exit(0);
 }
 
@@ -224,4 +232,57 @@ void Munmap(void *start, size_t length)
     if (munmap(start, length) < 0){
 	    error_exit("Munmap");
     }
+}
+
+//线程相关
+void Pthread_create(pthread_t *tidp, pthread_attr_t *attrp,
+		    void * (*routine)(void *), void *argp)
+{
+    int en; //错误代码
+
+    if ((en = pthread_create(tidp, attrp, routine, argp)) != 0){
+	     posix_error(en, "Pthread_create");
+    }
+}
+
+void Pthread_cancel(pthread_t tid)
+{
+    int en;
+
+    if ((en = pthread_cancel(tid)) != 0){
+	    posix_error(en, "Pthread_cancel");
+    }
+}
+
+void Pthread_join(pthread_t tid, void **thread_return)
+{
+    int en;
+
+    if ((en = pthread_join(tid, thread_return)) != 0){
+	    posix_error(en, "Pthread_join");
+    }
+}
+
+void Pthread_detach(pthread_t tid)
+{
+    int en;
+
+    if ((en = pthread_detach(tid)) != 0){
+	    posix_error(en, "Pthread_detach");
+    }
+}
+
+void Pthread_exit(void *retval)
+{
+    pthread_exit(retval);
+}
+
+pthread_t Pthread_self(void)
+{
+    return pthread_self();
+}
+
+void Pthread_once(pthread_once_t *once_control, void (*init_function)())
+{
+    pthread_once(once_control, init_function);
 }

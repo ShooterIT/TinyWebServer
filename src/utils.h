@@ -10,6 +10,7 @@
 #define __UTILS_H__
 
 #include <stdio.h>
+#include <pthread.h>
 #include <sys/types.h>
 
 #ifdef __cplusplus
@@ -59,9 +60,19 @@ pid_t Wait(int *status);
 void Execve(const char * filename, char * const argv[], char * const envp[]);
 void Execvp(const char * path, char * const argv[]);
 
-//内存映射 
+//内存映射
 void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 void Munmap(void *start, size_t length);
+
+//线程相关
+void Pthread_create(pthread_t *tidp, pthread_attr_t *attrp,
+		    void * (*routine)(void *), void *argp);
+void Pthread_join(pthread_t tid, void **thread_return);
+void Pthread_cancel(pthread_t tid);
+void Pthread_detach(pthread_t tid);
+void Pthread_exit(void *retval);
+pthread_t Pthread_self(void);
+void Pthread_once(pthread_once_t *once_control, void (*init_function)());
 
 #ifdef __cplusplus
 }

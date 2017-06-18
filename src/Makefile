@@ -1,9 +1,9 @@
 # app
 
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -lpthread
 TARGET = tiny_web
-OBJS = utils.o rio.o net.o $(TARGET).o
+OBJS = utils.o rio.o net.o sembuf.o $(TARGET).o
 
 $(TARGET) : $(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(CFLAGS)
