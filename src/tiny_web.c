@@ -18,27 +18,25 @@
 #include "net.h"
 #include "utils.h"
 #include "rio.h"
-#include "sembuf.h"
+#include "threadpool.h"
 
 #define NTHREAD 100
-#define SBSIZE  200
-
-//基于信号量的缓冲区
-sembuf_t sb;
+#define QSIZE  200
 
 //http服务
 void *http_thread(void *argv)
 {
      //获得进程id并分离线程
     Pthread_detach(Pthread_self());
-    while (1) {
-        int connfd = sembuf_remove(&sb); //获得一个可用消费项
-        //回声服务
-        doit(connfd);
-        //关闭连接
-        Close(connfd);
-        printf("Close connection\n");
-    }
+
+    //获得连接描述符
+    int connfd = *((int*)argv);
+
+    //回声服务
+    doit(connfd);
+
+    //关闭连接
+    Close(connfd);
 
     return NULL;
 }
@@ -63,12 +61,8 @@ int main(int argc, char *argv[])
     //创建一个监听套接字
     listenfd = Open_listenfd(argv[1]);
 
-    //初始化缓冲区
-    sembuf_init(&sb, SBSIZE);
-    //创建线程
-    for(i = 0; i < NTHREAD; i++){
-        Pthread_create(&tid, NULL, http_thread, NULL);
-    }
+    //创建线程池
+    struct threadpool *pool = threadpool_init(NTHREAD, QSIZE);
 
     while(1){
         //创建一个与客户端的连接套接字
@@ -77,8 +71,11 @@ int main(int argc, char *argv[])
         Getnameinfo((SA*)&clientaddr, clientlen, hostname, MAXLINE,
             port, MAXLINE,0);
         printf("Accepted connection from (%s,%s)\n", hostname, port);
-        sembuf_insert(&sb, connfd);
+        //添加线程任务
+        threadpool_add_job(pool, http_thread, (void*)&connfd);
     }
+
+    return 0;
 }
 
 //执行一个请求

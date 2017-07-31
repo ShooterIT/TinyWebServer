@@ -3,7 +3,7 @@
 CC = gcc
 CFLAGS = -Wall -g -lpthread
 TARGET = tiny_web
-OBJS = utils.o rio.o net.o sembuf.o $(TARGET).o
+OBJS = utils.o rio.o net.o threadpool.o $(TARGET).o
 
 $(TARGET) : $(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(CFLAGS)
